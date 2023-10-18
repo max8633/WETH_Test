@@ -2,7 +2,7 @@
 pragma solidity ^0.8.18;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {WETHContract} from "../src/WETH.sol";
+import {WETHContract} from "../src/WETHContract.sol";
 
 contract WETHTest is Test{
 
@@ -10,13 +10,13 @@ contract WETHTest is Test{
     address user1;
     address user2;
 
-    event Deposit(address indexed addr, unit256 amount);
-    event Withdraw(address indexed addr, unit256 amount);
+    event Deposit(address indexed addr, uint256 amount);
+    event Withdraw(address indexed addr, uint256 amount);
 
     function setUp() public {
-        user1 = makeAdde("user1");
-        user2 = makeAdde("user2");
-        weth = new WETH("Wrapped ether", "WETH");
+        user1 = makeAddr("user1");
+        user2 = makeAddr("user2");
+        weth = new WETHContract();
     }
     
     //測項 1: deposit 應該將與 msg.value 相等的 ERC20 token mint 給 user
@@ -25,7 +25,7 @@ contract WETHTest is Test{
         deal(user1, 1 ether);
         (bool result,) = address(weth).call{value: 1 ether}("");
         require(result);
-        assertEq(weth.balanceOf(user1), 1e18);
+        assertEq(weth.balanceOf(user1), 1 ether);
 
         vm.stopPrank();
     }
@@ -47,11 +47,13 @@ contract WETHTest is Test{
         deal(user1, 1 ether);
 
         vm.expectEmit(true, false, false, false);
-        emit Deposit(user1, address(weth), 1 ether); 
+        emit Deposit(user1, 1 ether); 
 
         (bool result,) = address(weth).call{value: 1 ether}("");
         require(result);
-        assertEq(address(weth).balance, 1 ether);      
+        assertEq(address(weth).balance, 1 ether);   
+
+        vm.stopPrank();   
     }
 
     //測項 4: withdraw 應該要 burn 掉與 input parameters 一樣的 erc20 token
@@ -64,6 +66,7 @@ contract WETHTest is Test{
 
         weth.withdraw(1 ether);
         assertEq(address(weth).balance, 0);
+
         vm.stopPrank();
     }
 
@@ -87,11 +90,13 @@ contract WETHTest is Test{
         deal(user1, 1 ether);
 
         vm.expectEmit(true, false, false, false);
-        emit Withdraw(address(weth), user1, 1 ether); 
+        emit Withdraw(address(weth), 1 ether); 
 
         (bool result,) = address(weth).call{value: 1 ether}("");
         require(result);
         assertEq(weth.balanceOf(user1), 1 ether);   
+
+        vm.stopPrank();
     }
 
     //測項 7: transfer 應該要將 erc20 token 轉給別人
@@ -102,7 +107,7 @@ contract WETHTest is Test{
         require(result);
         assertEq(address(weth).balance, 1 ether); 
 
-        address(weth).transfer(user2, 1e18);
+        weth.transfer(user2, 1e18);
         assertEq(weth.balanceOf(user1), 0);
         assertEq(weth.balanceOf(user2), 1e18);
 
@@ -119,6 +124,7 @@ contract WETHTest is Test{
 
         weth.approve(user2, 1e18);
         assertEq(weth.allowance(user1, user2), 1e18);
+
         vm.stopPrank();
     }
 
